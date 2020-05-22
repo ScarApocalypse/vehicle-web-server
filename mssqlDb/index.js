@@ -7,7 +7,7 @@ async function querySql(sql) {
   try {
     let pool = await mssql.connect(configStr);
     let results = await pool.request().query(sql);
-
+    if (results.recordset === undefined) return results.rowsAffected[0];
     return results.recordset;
   } catch (err) {
     // ... error checks

@@ -32,6 +32,11 @@ async function listVehicle1(query) {
   return { list, count, page, pageSize };
 }
 
+async function isTableExist(tablename) {
+  let sql = `Select name  From  SysObjects  Where xtype='U' And  Name='${tablename}'`;
+  let result = await mssqlDb.querySql(sql);
+  return result.length > 0 ? true : false;
+}
 function andWhere(obj) {
   if (Object.getOwnPropertyNames(obj).length <= 0) {
     return ``;
@@ -46,6 +51,7 @@ function andWhere(obj) {
 
 async function listVehicle(query) {
   debug && console.log(query);
+
   const {
     vehicle_id,
     alarm_type,
@@ -61,13 +67,13 @@ async function listVehicle(query) {
     var day = date.split("-")[2];
   }
   let time = year + month;
-  let tableName = "";
-  if (time == "201802") {
-    tableName = "tb_gpsinfo";
-  } else {
-    tableName = `tb_gpsinfo_${time}`;
-  }
 
+  let tableName = `tb_gpsinfo_${time}`;
+
+  let isExist = await isTableExist(tableName);
+  if (!isExist) {
+    return { list: [], count: 0, page: 1, pageSize };
+  }
   console.log(year, month, day);
   let sql = `select top ${pageSize}
   id,vehicle_id,command_id,alarm_type,move_speed,pos_time,total_course
@@ -115,42 +121,34 @@ async function listVehicle(query) {
 }
 
 async function dashInfo(query) {
-  const gpsnumSql = `SELECT rows FROM sysindexes WHERE id = OBJECT_ID('dbo.tb_gpsinfo') AND indid < 2`;
-  const vehiclenumSql = `select count(distinct vehicle_id) as num from tb_gpsinfo`;
-  const alarmnumSql = `select count(id) as num from tb_gpsinfo where command_id=209`;
-  const gpsChartSql = `select count(id) as num,day(pos_time) as day from tb_gpsinfo  group by day(pos_time)`;
-  const vehicleChartSql = `select count(distinct vehicle_id) as num,day(pos_time) as day from tb_gpsinfo  group by day(pos_time)`;
-  const alarmChartSql = `select count(id) as num,day(pos_time) as day from tb_gpsinfo where command_id=209 group by day(pos_time)`;
-  let gpsinfoCount = await mssqlDb.querySql(gpsnumSql);
-  let vehicleCount = await mssqlDb.querySql(vehiclenumSql);
-  let alarmCount = await mssqlDb.querySql(alarmnumSql);
-  let gpsChartData = await mssqlDb.querySql(gpsChartSql);
-  let vehicleChartData = await mssqlDb.querySql(vehicleChartSql);
-  let alarmChartData = await mssqlDb.querySql(alarmChartSql);
+  let { date } = query;
+  date = date.split("-").join("");
+  console.log(date);
 
-  console.log(vehicleCount);
+  let numinfoSql = `select * from numinfo where date=${date}`;
+  let chartDataSql = `select * from chartdata where date=${date} `;
+  let dashInfo = await mssqlDb.querySql(numinfoSql);
+
+  let chartData = await mssqlDb.querySql(chartDataSql);
+
   return {
-    gpsinfoCount: gpsinfoCount[0].rows,
-    vehicleCount: vehicleCount[0].num,
-    alarmCount: alarmCount[0].num,
-    gpsChartData,
-    vehicleChartData,
-    alarmChartData,
+    dashInfo,
+    chartData,
   };
 }
 
 async function alarmMsg(query) {
-  let { id } = query;
-  console.log(id);
+  let { date, id } = query;
+  let tableName = `tb_gpsinfo_${date}`;
   let alarmSql = `SELECT alarm_type,count(alarm_type) as num
-  FROM tb_gpsinfo
+  FROM ${tableName}
   WHERE vehicle_id=${id} and command_id=209
   GROUP BY alarm_type`;
   const alarmData = await mssqlDb.querySql(alarmSql);
-  let speedSql = `select avg(move_speed) as speed from tb_gpsinfo where vehicle_id=${id} and move_speed>0`;
+  let speedSql = `select avg(move_speed) as speed from ${tableName} where vehicle_id=${id} and move_speed>0`;
   const speedData = await mssqlDb.querySql(speedSql);
 
-  let courseSql = `select top 1 total_course from tb_gpsinfo  where vehicle_id=${id} order by id desc `;
+  let courseSql = `select top 1 total_course from ${tableName}  where vehicle_id=${id} order by id desc `;
   const courseData = await mssqlDb.querySql(courseSql);
   console.log(courseData);
   let data = {
@@ -182,12 +180,7 @@ async function addGpsInfo(model) {
   let arr = model.pos_time.split("-");
   let time = arr[0] + arr[1];
   console.log(time);
-  let tableName = "";
-  if (time == "201802") {
-    tableName = "tb_gpsinfo";
-  } else {
-    tableName = `tb_gpsinfo_${time}`;
-  }
+  let tableName = `tb_gpsinfo_${time}`;
 
   let isExist = await isTableExist(tableName);
   if (!isExist) {
@@ -209,9 +202,39 @@ async function addGpsInfo(model) {
   return result;
 }
 
+async function deleteGpsInfo({ id, pos_time }) {
+  let arr = pos_time.split("-");
+  let tableName = `tb_gpsinfo_${arr[0]}${arr[1]}`;
+  let deleteSql = `delete from ${tableName} where id=${id}`;
+  let result = await mssqlDb.querySql(deleteSql);
+  console.log(result);
+  return result;
+}
+
+async function updateDash() {
+  let time = new Date();
+  let hours = time.getHours();
+  console.log(hours);
+  if (hours !== 0) return;
+  console.log("开始统计数据");
+  let year = time.getFullYear();
+  let month = time.getMonth() + 1;
+  if (+month < 10) month = "0" + month;
+  let gpsTableName = `tb_gpsinfo_${year}${month}`;
+  console.log(gpsTableName);
+  const gpsnumSql = `SELECT rows FROM sysindexes WHERE id = OBJECT_ID('dbo.${gpsTableName}') AND indid < 2`;
+  const vehiclenumSql = `select count(distinct vehicle_id) as num from tb_gpsinfo_201802`;
+  const alarmnumSql = `select count(id) as num from tb_gpsinfo_201802 where command_id=209`;
+  const gpsChartSql = `select count(id) as num,day(pos_time) as day from tb_gpsinfo_201802  group by day(pos_time)`;
+  const vehicleChartSql = `select count(distinct vehicle_id) as num,day(pos_time) as day from tb_gpsinfo_201802  group by day(pos_time)`;
+  const alarmChartSql = `select count(id) as num,day(pos_time) as day from tb_gpsinfo_201802 where command_id=209 group by day(pos_time)`;
+}
+
 module.exports = {
   listVehicle,
   dashInfo,
   alarmMsg,
   addGpsInfo,
+  deleteGpsInfo,
+  updateDash,
 };

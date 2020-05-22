@@ -40,6 +40,7 @@ router.get("/dashinfo", function (req, res, next) {
 });
 
 router.get("/data", function (req, res, next) {
+  console.dir(req.query);
   vehicleService
     .alarmMsg(req.query)
     .then((result) => {
@@ -53,7 +54,24 @@ router.get("/data", function (req, res, next) {
 router.post("/addgpsinfo", function (req, res, next) {
   console.log(req.body);
 
-  vehicleService.addGpsInfo(req.body);
-  new Result("获取车辆报警信息统计成功").success;
+  vehicleService
+    .addGpsInfo(req.body)
+    .then((result) => {
+      new Result("添加gps信息成功").success(res);
+    })
+    .catch((err) => {
+      next(boom.badImplementation(err));
+    });
+});
+
+router.delete("/delete", function (req, res, next) {
+  vehicleService
+    .deleteGpsInfo(req.query)
+    .then((result) => {
+      new Result("删除成功").success(res);
+    })
+    .catch((err) => {
+      next(boom.badImplementation(err));
+    });
 });
 module.exports = router;
