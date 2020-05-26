@@ -1,4 +1,3 @@
-const Book = require("../models/Book");
 const mssqlDb = require("../mssqlDb");
 const _ = require("lodash");
 const { debug } = require("../utils/constant");
@@ -139,7 +138,18 @@ async function dashInfo(query) {
 
 async function alarmMsg(query) {
   let { date, id } = query;
+
   let tableName = `tb_gpsinfo_${date}`;
+
+  let isExist = await isTableExist(tableName);
+  if (!isExist) {
+    return {
+      alarm: [],
+      speed: 0,
+      total_course: 0,
+      vehicle_id: "0",
+    };
+  }
   let alarmSql = `SELECT alarm_type,count(alarm_type) as num
   FROM ${tableName}
   WHERE vehicle_id=${id} and command_id=209

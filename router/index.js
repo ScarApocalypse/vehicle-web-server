@@ -1,8 +1,8 @@
 const express = require("express");
 const boom = require("boom");
 const userRouter = require("./user");
-
 const vehicleRouter = require("./vehicle");
+const accountRouter = require("./account");
 const jwtAuth = require("./jwt");
 const Result = require("../models/Result");
 // 注册路由
@@ -17,6 +17,9 @@ router.get("/11", function (req, res) {
 router.use("/user", userRouter);
 
 router.use("/vehicle", vehicleRouter);
+
+router.use("/account", accountRouter);
+
 /**
  * 集中处理404请求的中间件
  * 注意：该中间件必须放在正常处理流程之后

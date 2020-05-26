@@ -3,6 +3,7 @@ const boom = require("boom");
 const Result = require("../models/Result");
 const router = express.Router();
 const vehicleService = require("../services/vehicle");
+const staService = require("../services/statistics");
 
 router.get("/list", function (req, res, next) {
   console.log(req.query);
@@ -73,5 +74,15 @@ router.delete("/delete", function (req, res, next) {
     .catch((err) => {
       next(boom.badImplementation(err));
     });
+});
+
+router.get("/updatedash", function (req, res, next) {
+  staService.statistics(req.query).then((result) => {
+    if (result) {
+      new Result(result, "更新面板数据成功").success(res);
+    } else {
+      new Result(result, "更新面板数据失败").fail(res);
+    }
+  });
 });
 module.exports = router;

@@ -3,7 +3,7 @@ const router = require("./router");
 const app = express();
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const { updateDash } = require("./services/vehicle");
+
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -16,15 +16,6 @@ app.use(bodyParser.json());
 //   next();
 // });
 
-(function schedule() {
-  setInterval(() => {
-    let time = new Date();
-    let hours = time.getHours();
-    console.log(hours);
-    if (hours !== 0) return;
-    updateDash();
-  }, 3000);
-})();
 app.use("/", router);
 
 const server = app.listen("18082", function () {
