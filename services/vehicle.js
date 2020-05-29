@@ -1,6 +1,7 @@
 const mssqlDb = require("../mssqlDb");
 const _ = require("lodash");
 const { debug } = require("../utils/constant");
+const { isUserExist } = require("../services/account");
 
 async function listVehicle1(query) {
   debug && console.log(query);
@@ -192,6 +193,11 @@ async function addGpsInfo(model) {
   console.log(time);
   let tableName = `tb_gpsinfo_${time}`;
 
+  let isVehicleIdExist = await isUserExist(vehicle_id);
+  if (!isVehicleIdExist) {
+    return false;
+  }
+
   let isExist = await isTableExist(tableName);
   if (!isExist) {
     let createTableSql = `create table ${tableName} 
@@ -209,7 +215,7 @@ async function addGpsInfo(model) {
   let addGpsInfoSql = `insert into ${tableName} (vehicle_id,command_id,alarm_type,move_speed,total_course,pos_time) values (${+vehicle_id},${+command_id},${+alarm_type},${+move_speed},${+total_course},'${pos_time}')`;
   let result = await mssqlDb.querySql(addGpsInfoSql);
 
-  return result;
+  return true;
 }
 
 async function deleteGpsInfo({ id, pos_time }) {

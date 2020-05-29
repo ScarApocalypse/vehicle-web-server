@@ -58,7 +58,11 @@ router.post("/addgpsinfo", function (req, res, next) {
   vehicleService
     .addGpsInfo(req.body)
     .then((result) => {
-      new Result("添加gps信息成功").success(res);
+      if (result) {
+        new Result("添加gps信息成功").success(res);
+      } else {
+        new Result("要添加的车辆ID未登记在本系统中").fail(res);
+      }
     })
     .catch((err) => {
       next(boom.badImplementation(err));

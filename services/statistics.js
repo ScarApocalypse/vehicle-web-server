@@ -25,7 +25,7 @@ async function statistics({ date }) {
   let alarmChartData = await mssqlDb.querySql(alarmChartSql);
 
   let chartData = [];
-
+  console.log(gpsChartData);
   gpsChartData.forEach((gps) => {
     let obj = {};
     obj.day = gps.day;
@@ -64,11 +64,11 @@ async function statistics({ date }) {
       obj.gps = 0;
       obj.vehicle = 0;
       obj.alarm = 0;
-      obj.date = "202005";
+      obj.date = date;
       newChartData.push(obj);
     }
   }
-
+  console.log(newChartData);
   let insertChartDataSql = ``;
   newChartData.forEach(({ day, gps, vehicle, alarm, date }) => {
     insertChartDataSql = `${insertChartDataSql}insert into chartdata(day,gps,alarm,vehicle,date) values('${day}',${gps},${vehicle},${alarm},'${date}');`;

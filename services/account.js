@@ -11,7 +11,7 @@ async function isUserExist(username) {
 async function listAccount(query) {
   debug && console.log(query);
 
-  const { username, page = 1, pageSize = 20, sort = "+" } = query;
+  const { username, page = 1, pageSize = 20, sort = "+", role } = query;
   let tableName = `admin_user`;
   let sql = `select top ${pageSize}
   id,username,role
@@ -23,6 +23,7 @@ async function listAccount(query) {
   ${username ? `where username like '%${username}%'` : ``}
   order by  id ${sort[0] == "+" ? "asc" : "desc"}) temp_max_ids)
   ${username ? `and username like '%${username}%'` : ``}
+  ${role ? `and role = '${role}'` : ``}
   order by id ${sort[0] == "+" ? "asc" : "desc"}`;
   console.log(sql);
   let countSql = `select count(id) as count from ${tableName} where username like '%${username}%'`;
@@ -73,4 +74,5 @@ module.exports = {
   addAccount,
   deleteAccount,
   updateAccount,
+  isUserExist,
 };
